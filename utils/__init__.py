@@ -3,6 +3,7 @@ from .dataloader import SensorDataset
 from .dataloader import SampleTransform
 from .dataloader import rm_mode_index
 from .feature_extract import feature_extract
+from .RandomSubsetSampler import RandomSubsetSampler
 
 __all__ = [
     get_dataloader,
@@ -10,4 +11,5 @@ __all__ = [
     SampleTransform,
     rm_mode_index,
     feature_extract,
+    RandomSubsetSampler,
 ]

@@ -18,4 +18,4 @@ and `utils/dataset_preparation.py` will transform the raw csv files into the `da
 
 Run `python utils/dataset_preparation.py --raw_data_dir /data/xiucheng/oppo-transport/beijing --data_dir data_beijing` to generate `data_beijing/*.json`.
 
-Run `python train.py --data_dir data_beijing` to train and do validation,  as well as test with the best model.
+Run `python train.py` to train and do validation,  as well as test with the best model.

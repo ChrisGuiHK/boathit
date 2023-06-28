@@ -49,10 +49,11 @@ def get_dataloader(fname: str, seq_len: int, stride: int, batch_size: int, shuff
     dataset = SensorDataset(fname, seq_len, stride, SampleTransform())
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
-def rm_mode_index(dataset: Dataset, mode: int=3) -> List[int]:
+def rm_mode_index(dataset: Dataset, mode: List[int]|int) -> List[int]:
+    if x := isinstance(mode, int): mode = [mode]
     indices = []
     for idx in range(len(dataset)):
-        if dataset[idx][1] != mode:
+        if dataset[idx][1] not in mode:
             indices.append(idx)
     return indices
 
