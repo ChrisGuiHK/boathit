@@ -1,12 +1,13 @@
 import argparse
 import os
 import torch
-from models import MultiScaleFCN, LinearClassifier
-from models import DomainAdversial, DomainDiscriminator
+from models import MultiScaleFCN, LinearClassifier, FeatureHead
+from models import ConditionalDomainAdversial, ConditionalDomainDiscriminator
 from visualize import visualize
 from utils import feature_extract, get_dataloader
-from utils import SensorDataset, SampleTransform, rm_mode_index, RandomSubsetSampler
+from utils import SensorDataset, SampleTransform, rm_mode_index
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from utils import RandomSubsetSampler
 from pytorch_lightning.loggers import TensorBoardLogger
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.combined_loader import CombinedLoader
@@ -27,13 +28,13 @@ def main(args: argparse.Namespace):
     valid_trg_dataset = SensorDataset(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, SampleTransform())
     test_src_dataset = SensorDataset(os.path.join(args.data_src_dir, 'tst.json'), args.L, args.test_stride, SampleTransform())
     test_trg_dataset = SensorDataset(os.path.join(args.data_trg_dir, 'tst.json'), args.L, args.test_stride, SampleTransform())
-    ## get indices with bus and subway 
+    ## get indices without mode 3(airplane)
     train_src_index = rm_mode_index(train_src_dataset, [2, 3, 4])
     train_trg_index = rm_mode_index(train_trg_dataset, 3)
     valid_trg_index = rm_mode_index(valid_trg_dataset, 3)
     test_src_index = rm_mode_index(test_src_dataset, [2, 3, 4])
     test_trg_index = rm_mode_index(test_trg_dataset, 3)
-    ## get dataset max size
+    ## get max size of dataset
     dataset_max_size = max(len(train_src_index), len(train_trg_index))
     ## preparing data
     train_src_loader = DataLoader(train_src_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, sampler=RandomSubsetSampler(dataset_max_size, train_src_index))
@@ -45,8 +46,9 @@ def main(args: argparse.Namespace):
     ## fcn
     backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
     classifer = LinearClassifier(args.hidden_size*2, args.n_class)
-    domainDiscriminator = DomainDiscriminator(args.hidden_size*2, 512, 1024)
-    dann = DomainAdversial(backbone, classifer, domainDiscriminator, args.n_class, args.trade_off)
+    feature_head = FeatureHead(args.hidden_size*2, args.feature_dim)
+    domainDiscriminator = ConditionalDomainDiscriminator(args.feature_dim*args.n_class, 256)
+    cdan = ConditionalDomainAdversial(backbone, classifer, domainDiscriminator, feature_head, args.n_class, args.trade_off)
 
     ## training and validation
     logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
@@ -54,10 +56,10 @@ def main(args: argparse.Namespace):
     trainer = pl.Trainer(accelerator=args.accelerator, devices=[args.devices], max_epochs=args.max_epochs, gradient_clip_val=1.0, logger=logger, callbacks=[checkpoint_callback])
     iterables = {'src': train_src_loader, 'trg': train_trg_loader}
     train_dataloader = CombinedLoader(iterables, 'max_size_cycle')
-    trainer.fit(dann, train_dataloader, valid_trg_loader)
+    trainer.fit(cdan, train_dataloader, valid_trg_loader)
 
     ## testing with the best model
-    trainer.test(dann, [test_src_loader, test_trg_loader], ckpt_path='best')
+    trainer.test(cdan, [test_src_loader, test_trg_loader], ckpt_path='best')
 
 
 if __name__ == '__main__':
@@ -71,11 +73,12 @@ if __name__ == '__main__':
     parser.add_argument("--train_stride", default=2*50, type=int)
     parser.add_argument("--test_stride", default=2*50, type=int)
     parser.add_argument("--hidden_size", default=320, type=int)
+    parser.add_argument("--feature_dim", default=512, type=int)
     parser.add_argument("--L", default=32*50, type=int) # seq_len or window size
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
     parser.add_argument("--trade_off", default=1., type=float)
     parser.add_argument("--seed", default=701, type=int)
-    parser.add_argument("--log_name", default='dann_2classes', type=str)
+    parser.add_argument("--log_name", default='cdan_2classes', type=str)
     args = parser.parse_args()
     main(args)

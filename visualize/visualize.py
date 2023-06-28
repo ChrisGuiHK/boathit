@@ -34,9 +34,10 @@ def visualize(source_feature: torch.Tensor, target_feature: torch.Tensor, source
         colors.append(colors_all[label])
         labels.append(labels_all[label])
     patches = []
+    dictionary = {label: idx for idx, label in enumerate(np.unique(domains))}
     for i in range(len(colors)):
         patches.append(mpatches.Patch(color=colors[i], label=labels[i]))
-    plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=domains, cmap=col.ListedColormap(colors), s=5)
+    plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=[dictionary[x] for x in domains], cmap=col.ListedColormap(colors), s=5)
     plt.legend(handles=patches)
     plt.xticks([])
     plt.yticks([])
