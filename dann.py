@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument("--data_src_dir", default="data/beijing")
     parser.add_argument("--data_trg_dir", default="data/chongqing")
     parser.add_argument("--max_epochs", default=80, type=int)
-    parser.add_argument("--batch_size", default=256, type=int)
+    parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("--train_stride", default=2*50, type=int)
     parser.add_argument("--test_stride", default=2*50, type=int)
     parser.add_argument("--hidden_size", default=320, type=int)
