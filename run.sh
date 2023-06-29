@@ -1,6 +1,20 @@
-python utils/dataset_preparation.py --raw_data_dir /data/xiucheng/oppo-transport/beijing --data_dir data_beijing
+# vanilla
+python vanilla.py  ## vanilla 5 classes
+python vanilla.py --removed_classes 2 3 4 --log_name "2classes_vanilla" ## vanilla 2 classes
 
-python train.py --data_dir data_beijing
+python vanilla.py --mode analysis --version "xxx" --best_cpkt "xxx" ## analysis 5 classes
+python vanilla.py --mode analysis --version "xxx" --best_cpkt "xxx" --removed_classes 2 3 4 --log_name "2classes_vanilla" ## analysis 2 classes
 
-#python utils/dataset_preparation.py --raw_data_dir /data/xiucheng/oppo-transport/harbin --data_dir data_harbin
-#python train.py --data_dir data_harbin --max_epochs 5 --hidden_size 320 --batch_size 32 --n_class 5
+# dann
+python dann.py  ## dann 5 classes
+python dann.py --removed_classes 2 3 4 --log_name "2classes_dann" ## dann 2 classes
+
+python dann.py --mode analysis --version "xxx" --best_cpkt "xxx" ## analysis 5 classes
+python dann.py --mode analysis --version "xxx" --best_cpkt "xxx" --removed_classes 2 3 4 --log_name "2classes_dann" ## analysis 2 classes
+
+# cdan
+python cdan.py  ## cdan 5 classes
+python cdan.py --removed_classes 2 3 4 --log_name "2classes_cdan" ## cdan 2 classes
+
+python cdan.py --mode analysis --version "xxx" --best_cpkt "xxx" ## analysis 5 classes
+python cdan.py --mode analysis --version "xxx" --best_cpkt "xxx" --removed_classes 2 3 4 --log_name "2classes_cdan" ## analysis 2 classes

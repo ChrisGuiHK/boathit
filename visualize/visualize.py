@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 matplotlib.use('Agg')
 
 def visualize(source_feature: torch.Tensor, target_feature: torch.Tensor, source_classes: torch.Tensor, target_classes: torch.Tensor, 
-              filename: str, source_color='r', target_color='b'):
+              filename: str):
     source_feature = source_feature.numpy()
     target_feature = target_feature.numpy()
     features = np.concatenate([source_feature, target_feature], axis=0)
