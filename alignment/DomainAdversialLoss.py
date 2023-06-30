@@ -10,7 +10,7 @@ class DomainAdversialLoss(nn.Module):
         self.domain_discriminator = domain_discriminator
         self.reduction = reduction
         if grl is None:
-            self.grl = WarmStartGradientReverseLayer(alpha=1., lo=0., hi=3., max_iters=1500, auto_step=True)
+            self.grl = WarmStartGradientReverseLayer(alpha=1., lo=0., hi=5., max_iters=2000, auto_step=True)
         else:
             self.grl = grl
 

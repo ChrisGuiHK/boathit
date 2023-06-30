@@ -24,7 +24,7 @@ def main(args: argparse.Namespace):
     test_src_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
                                         n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
     test_trg_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
-                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
 
     ## fcn
     backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
@@ -34,7 +34,7 @@ def main(args: argparse.Namespace):
     if args.mode == "train":
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, args.n_class, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
-                                    n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                    n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
         dann = DomainAdversial(backbone, classifer, domainDiscriminator, n_class, args.trade_off)
 
@@ -76,14 +76,14 @@ if __name__ == '__main__':
     parser.add_argument("--data_src_dir", default="data/beijing")
     parser.add_argument("--data_trg_dir", default="data/chongqing")
     parser.add_argument("--max_epochs", default=80, type=int)
-    parser.add_argument("--batch_size", default=128, type=int)
+    parser.add_argument("--batch_size", default=256, type=int)
     parser.add_argument("--train_stride", default=2*50, type=int)
     parser.add_argument("--test_stride", default=2*50, type=int)
     parser.add_argument("--hidden_size", default=320, type=int)
     parser.add_argument("--L", default=32*50, type=int) # seq_len or window size
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
-    parser.add_argument("--trade_off", default=1., type=float)
+    parser.add_argument("--trade_off", default=2., type=float)
     parser.add_argument("--seed", default=701, type=int)
     parser.add_argument("--log_name", default='dann', type=str)
     parser.add_argument("--removed_classes", default=[], choices=[0, 1, 2, 3, 4], nargs='*', type=int)

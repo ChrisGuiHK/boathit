@@ -24,7 +24,7 @@ def main(args: argparse.Namespace):
     test_src_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
                                         n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
     test_trg_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
-                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
 
     ## fcn
     mF = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
@@ -34,7 +34,7 @@ def main(args: argparse.Namespace):
         train_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'trn.json'), args.L, args.test_stride, args.batch_size, shuffle=True,
                                         n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
-                                    n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                    n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
         tsc = LitTSClassifier(mF, mG, n_class)
         ## training and validation
