@@ -20,11 +20,11 @@ def main(args: argparse.Namespace):
     torch.backends.cudnn.benchmark = False
 
     ## dataset
-    _, n_class = class_relabel(args.n_class, args.removed_classes)
+    label_mapping, n_class = class_relabel(args.n_class, args.removed_classes)
     test_src_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
-                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                        label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=args.removed_classes)
     test_trg_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'tst.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False,
-                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
+                                        label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
 
     ## fcn
     mF = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
@@ -32,9 +32,9 @@ def main(args: argparse.Namespace):
 
     if args.mode == "train":
         train_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'trn.json'), args.L, args.test_stride, args.batch_size, shuffle=True,
-                                        n_class=args.n_class, num_workers=args.num_workers, removed_classes=args.removed_classes)
+                                        label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
-                                    n_class=args.n_class, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
+                                    label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
         tsc = LitTSClassifier(mF, mG, n_class)
         ## training and validation
@@ -55,8 +55,8 @@ def main(args: argparse.Namespace):
             mG=mG,
             n_class=n_class
         )
-        src_features, src_labels = feature_extract(tsc.mF, test_src_dataloader)
-        trg_features, trg_labels = feature_extract(tsc.mF, test_trg_dataloader)
+        src_features, src_labels = feature_extract(tsc.mF, test_src_dataloader, args.devices)
+        trg_features, trg_labels = feature_extract(tsc.mF, test_trg_dataloader, args.devices)
         visualize(src_features, trg_features, src_labels, trg_labels, os.path.join('fig', f'{args.fig_name}_tsne.png'))
 
 

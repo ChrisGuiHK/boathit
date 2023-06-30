@@ -3,10 +3,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import tqdm
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-torch.cuda.set_device(1)
-
-def feature_extract(feature_extractor: nn.Module, dataloader: DataLoader, max_num_features=None) -> torch.Tensor:
+def feature_extract(feature_extractor: nn.Module, dataloader: DataLoader, device: int, max_num_features=None) -> torch.Tensor:
+    torch.device(f'cuda:{device}')
     feature_extractor.eval()
     features = []
     labels = []
@@ -17,6 +15,6 @@ def feature_extract(feature_extractor: nn.Module, dataloader: DataLoader, max_nu
             inputs = data[0].to(device)
             labels.append(data[1])
             feature = feature_extractor(inputs)
-            feature = nn.Sequential(nn.AdaptiveAvgPool1d(1), nn.Flatten())(feature).cpu()
+            feature = nn.Sequential(nn.AdaptiveAvgPool1d(1), nn.Flatten())(feature).to(device)
             features.append(feature)
     return torch.cat(features, dim=0), torch.cat(labels, dim=0)

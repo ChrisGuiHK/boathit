@@ -11,8 +11,8 @@ matplotlib.use('Agg')
 
 def visualize(source_feature: torch.Tensor, target_feature: torch.Tensor, source_classes: torch.Tensor, target_classes: torch.Tensor, 
               filename: str):
-    source_feature = source_feature.numpy()
-    target_feature = target_feature.numpy()
+    source_feature = source_feature.cpu().numpy()
+    target_feature = target_feature.cpu().numpy()
     features = np.concatenate([source_feature, target_feature], axis=0)
 
     domains = np.concatenate([source_classes.numpy(), target_classes.numpy() + 5], axis=0)
@@ -30,11 +30,12 @@ def visualize(source_feature: torch.Tensor, target_feature: torch.Tensor, source
     labels_all = ['source_bus', 'source_subway', 'source_car', 'source_airplane', 'source_train', 'target_bus', 'target_subway', 'target_car', 'target_airplane', 'target_train']
     colors = []
     labels = []
-    for label in np.unique(domains):
+    unique_domain = np.unique(domains)
+    for label in unique_domain:
         colors.append(colors_all[label])
         labels.append(labels_all[label])
     patches = []
-    dictionary = {label: idx for idx, label in enumerate(np.unique(domains))}
+    dictionary = {label: idx for idx, label in enumerate(unique_domain)}
     for i in range(len(colors)):
         patches.append(mpatches.Patch(color=colors[i], label=labels[i]))
     plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=[dictionary[x] for x in domains], cmap=col.ListedColormap(colors), s=5)

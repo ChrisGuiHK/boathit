@@ -48,21 +48,19 @@ class SampleTransform(object):
         #X = X[1:] # ignore time difference
         return (X.astype(np.float32), y)
 
-def get_dataloader(fname: str, seq_len: int, stride: int, batch_size: int, shuffle: bool, n_class: int, num_workers: Optional[int] = 0, 
+def get_dataloader(fname: str, seq_len: int, stride: int, batch_size: int, shuffle: bool, label_mapping: Dict, num_workers: Optional[int] = 0, 
                    removed_classes: Optional[List]|int = []) -> DataLoader:
     '''
     # 50 samples per second
     get_dataloader('tst.json', 5*50, 50, 32)
     '''
     if isinstance(removed_classes, int): removed_classes = [removed_classes]
-    label_mapping, _ = class_relabel(n_class, removed_classes)
     dataset = SensorDataset(fname, seq_len, stride, SampleTransform(), removed_classes, label_mapping)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
-def get_train_dataloader(src_dir:str, trg_dir:str, seq_len: int, stride: int, batch_size: int, n_class: int, num_workers: Optional[int] = 0,
+def get_train_dataloader(src_dir:str, trg_dir:str, seq_len: int, stride: int, batch_size: int, label_mapping: Dict, num_workers: Optional[int] = 0,
                          removed_classes: Optional[List]|int = []) -> DataLoader:
     if isinstance(removed_classes, int): removed_classes = [removed_classes]
-    label_mapping, _ = class_relabel(n_class, removed_classes)
     src_dataset = SensorDataset(os.path.join(src_dir, "trn.json"), seq_len, stride, SampleTransform(), removed_classes, label_mapping)
     trg_dataset = SensorDataset(os.path.join(trg_dir, "trn.json"), seq_len, stride, SampleTransform(), removed_classes, label_mapping)
     max_dataset_sz = max(len(src_dataset), len(trg_dataset))
