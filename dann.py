@@ -2,6 +2,7 @@ import argparse
 import os
 import torch
 from models import MultiScaleFCN, LinearClassifier
+from models import LitTSVanilla as LitTSClassifier
 from models import DomainAdversial, DomainDiscriminator
 from visualize import visualize
 from utils import feature_extract, get_dataloader, get_train_dataloader, class_relabel
@@ -27,16 +28,28 @@ def main(args: argparse.Namespace):
                                         label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
 
     ## fcn
-    backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
-    classifer = LinearClassifier(args.hidden_size*2, n_class)
+    if not args.pretrain:
+        backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
+        classifer = LinearClassifier(args.hidden_size*2, n_class)
+    else:
+        tsc = LitTSClassifier.load_from_checkpoint(
+            checkpoint_path=f'lightning_logs/{args.pretrained_model}/version_{args.pretrained_version}/checkpoints/{args.pretrained_ckpt}',
+            hparams_file=f"lightning_logs/{args.pretrained_model}/version_{args.pretrained_version}/hparams.yaml",
+            map_location=None,
+            mF=MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11]),
+            mG=LinearClassifier(args.hidden_size*2, n_class),
+            n_class=n_class
+        )
+        backbone = tsc.mF
+        classifer = tsc.mG
+    
     domainDiscriminator = DomainDiscriminator(args.hidden_size*2, 512, 1024)
 
     if args.mode == "train":
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
-        
-        dann = DomainAdversial(backbone, classifer, domainDiscriminator, n_class, args.trade_off)
+        dann = DomainAdversial(backbone, classifer, domainDiscriminator, n_class, args.trade_off, args.pretrain)
 
         ## training and validation
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
@@ -68,7 +81,6 @@ def main(args: argparse.Namespace):
         visualize(src_features, trg_features, src_labels, trg_labels, os.path.join('fig', f'{args.fig_name}_tsne.png'))
         
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--accelerator", default='gpu')
@@ -83,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument("--L", default=32*50, type=int) # seq_len or window size
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
-    parser.add_argument("--trade_off", default=2., type=float)
+    parser.add_argument("--trade_off", default=.5, type=float)
     parser.add_argument("--seed", default=701, type=int)
     parser.add_argument("--log_name", default='dann', type=str)
     parser.add_argument("--removed_classes", default=[], choices=[0, 1, 2, 3, 4], nargs='*', type=int)
@@ -92,5 +104,9 @@ if __name__ == '__main__':
     parser.add_argument("--best_ckpt", default=None, type=str)
     parser.add_argument("--fig_name", default="dann", type=str)
     parser.add_argument("--num_workers", default=8, type=int)
+    parser.add_argument("--pretrain", default=False, type=bool)
+    parser.add_argument("--pretrained_model", default="vanilla", type=str)
+    parser.add_argument("--pretrained_ckpt", default="last.ckpt", type=str)
+    parser.add_argument("--pretrained_version", default=0, type=int)
     args = parser.parse_args()
     main(args)

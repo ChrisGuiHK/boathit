@@ -7,7 +7,7 @@ from alignment import ConditionalDomainAdversialLoss
 from typing import Any
 
 class ConditionalDomainAdversial(pl.LightningModule):
-    def __init__(self, backbone, classifer, discriminator, feature_head, n_class, trade_off):
+    def __init__(self, backbone, classifer, discriminator, feature_head, n_class, trade_off, pretrained=False):
         super().__init__()
         self.backbone = backbone
         self.classifer = classifer
@@ -15,6 +15,8 @@ class ConditionalDomainAdversial(pl.LightningModule):
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
         self.trade_off = trade_off
         self.feature_head = feature_head
+        self.loss = ConditionalDomainAdversialLoss(self.discriminator)
+        self.pretrained = pretrained
 
     def training_step(self, batch, batch_idx):
         src_x, src_y = batch['src']
@@ -29,7 +31,7 @@ class ConditionalDomainAdversial(pl.LightningModule):
 
         # loss
         loss_cls = F.nll_loss(y_s, src_y)
-        loss_adv = ConditionalDomainAdversialLoss(self.discriminator)(f, y)
+        loss_adv = self.loss(f, y)
         loss = loss_cls + self.trade_off * loss_adv
 
         # log   
@@ -58,5 +60,13 @@ class ConditionalDomainAdversial(pl.LightningModule):
 
 
     def configure_optimizers(self) -> Any:
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        if not self.pretrained:
+            optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        else:
+            optimizer = torch.optim.Adam([
+                { 'params': self.backbone.parameters(), 'lr': 1e-5}, 
+                { 'params': self.classifer.parameters(), 'lr': 1e-4},
+                { 'params': self.feature_head.parameters(), 'lr': 1e-4},
+                { 'params': self.feature_head.parameters(), 'lr': 1e-4}
+            ])
         return optimizer

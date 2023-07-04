@@ -7,10 +7,10 @@ class ConditionalDomainAdversialLoss(nn.Module):
     def __init__(self, domain_discriminator: nn.Module, grl: nn.Module = None, reduction: str = 'mean'):
         super(ConditionalDomainAdversialLoss, self).__init__()
         self.domain_discriminator = domain_discriminator
-        self.grl = grl if grl is not None else WarmStartGradientReverseLayer(alpha=1.0, lo=0., hi=3., max_iters=2000, auto_step=True)
+        self.grl = grl if grl is not None else WarmStartGradientReverseLayer(alpha=1.0, lo=0., hi=1., max_iters=1500, auto_step=True)
         self.reduction = reduction
         self.map = LinearMap()
-    
+        
     def forward(self, f: torch.Tensor, g: torch.Tensor) -> torch.Tensor:
         batch_size = f.size(0)
         assert batch_size % 2 == 0, "batch size must be even"

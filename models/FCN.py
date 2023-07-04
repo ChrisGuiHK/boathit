@@ -99,7 +99,7 @@ class MultiScaleConvBlock(nn.Module):
         x = self.bn(x)
         x = F.gelu(x)
         x = self.pooling(x)
-        # x = self.dropout(x)
+        x = self.dropout(x)
         return x
 
 class MultiScaleFCN(nn.Module):
