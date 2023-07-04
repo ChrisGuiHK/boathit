@@ -14,7 +14,6 @@ def feature_extract(feature_extractor: nn.Module, dataloader: DataLoader, device
                 break
             inputs = data[0].to(device)
             labels.append(data[1])
-            feature = feature_extractor(inputs)
-            feature = nn.Sequential(nn.AdaptiveAvgPool1d(1), nn.Flatten())(feature).to(device)
+            feature = feature_extractor(inputs).to(device)
             features.append(feature)
     return torch.cat(features, dim=0), torch.cat(labels, dim=0)

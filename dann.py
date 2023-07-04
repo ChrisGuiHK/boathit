@@ -43,7 +43,7 @@ def main(args: argparse.Namespace):
         backbone = tsc.mF
         classifer = tsc.mG
     
-    domainDiscriminator = DomainDiscriminator(args.hidden_size*2, 512, 1024)
+    domainDiscriminator = DomainDiscriminator(args.hidden_size*2, 512)
 
     if args.mode == "train":
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)

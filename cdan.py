@@ -1,8 +1,8 @@
 import argparse
 import os
 import torch
-from models import MultiScaleFCN, LinearClassifier, FeatureHead
-from models import ConditionalDomainAdversial, ConditionalDomainDiscriminator
+from models import MultiScaleFCN, LinearClassifier
+from models import ConditionalDomainAdversial, DomainDiscriminator
 from models import LitTSVanilla as LitTSClassifier
 from visualize import visualize
 from utils import feature_extract, get_dataloader, get_train_dataloader, class_relabel
@@ -44,15 +44,14 @@ def main(args: argparse.Namespace):
         backbone = tsc.mF
         classifer = tsc.mG
     
-    feature_head = FeatureHead(args.hidden_size*2, args.feature_dim)
-    domainDiscriminator = ConditionalDomainDiscriminator(args.feature_dim*n_class, 256)
+    domainDiscriminator = DomainDiscriminator(2*args.hidden_size*n_class, 512)
 
     if args.mode == "train":
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
-        cdan = ConditionalDomainAdversial(backbone, classifer, domainDiscriminator, feature_head, n_class, args.trade_off)
+        cdan = ConditionalDomainAdversial(backbone, classifer, domainDiscriminator, n_class, args.trade_off)
     
 
         ## training and validation
@@ -76,7 +75,6 @@ def main(args: argparse.Namespace):
                 backbone=backbone, 
                 classifer=classifer, 
                 discriminator=domainDiscriminator, 
-                feature_head=feature_head,
                 n_class=n_class, 
                 trade_off=args.trade_off
             )

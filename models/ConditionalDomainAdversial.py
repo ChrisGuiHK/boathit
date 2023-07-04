@@ -7,14 +7,13 @@ from alignment import ConditionalDomainAdversialLoss
 from typing import Any
 
 class ConditionalDomainAdversial(pl.LightningModule):
-    def __init__(self, backbone, classifer, discriminator, feature_head, n_class, trade_off, pretrained=False):
+    def __init__(self, backbone, classifer, discriminator, n_class, trade_off, pretrained=False):
         super().__init__()
         self.backbone = backbone
         self.classifer = classifer
         self.discriminator = discriminator
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
         self.trade_off = trade_off
-        self.feature_head = feature_head
         self.loss = ConditionalDomainAdversialLoss(self.discriminator)
         self.pretrained = pretrained
 
@@ -27,7 +26,6 @@ class ConditionalDomainAdversial(pl.LightningModule):
         f = self.backbone(x)
         y = self.classifer(f)
         y_s, y_t = torch.chunk(y, 2, dim=0)
-        f = self.feature_head(f)
 
         # loss
         loss_cls = F.nll_loss(y_s, src_y)

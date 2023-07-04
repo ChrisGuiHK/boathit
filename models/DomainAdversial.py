@@ -61,9 +61,9 @@ class DomainAdversial(pl.LightningModule):
     def configure_optimizers(self) -> Any:
         if self.pretrain:
             optimizer = torch.optim.Adam([
-                {'params': self.backbone.parameters(), 'lr': 5e-5}, 
-                {'params': self.classifer.parameters(), 'lr': 5e-4},
-                {'params': self.discriminator.parameters(), 'lr': 5e-4},
+                {'params': self.backbone.parameters(), 'lr': 1e-5}, 
+                {'params': self.classifer.parameters(), 'lr': 1e-4},
+                {'params': self.discriminator.parameters(), 'lr': 1e-4},
             ])
         else:
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)

@@ -1,7 +1,7 @@
-from .FCN import FCNNaive, MultiScaleFCN, GatedConv, MultiScaleConvBlock
-from .base import LinearClassifier, FFNClassifier, FeatureHead
+from .FCN import FCNNaive, MultiScaleFCN, GatedConv
+from .base import LinearClassifier, FFNClassifier
 from .LitTS import LitTSVanilla
-from .DomainDiscriminator import DomainDiscriminator, ConditionalDomainDiscriminator
+from .DomainDiscriminator import DomainDiscriminator
 from .grl import WarmStartGradientReverseLayer
 from .DomainAdversial import DomainAdversial
 from .ConditionalDomainAdversial import ConditionalDomainAdversial
@@ -17,6 +17,4 @@ __all__ = [
     WarmStartGradientReverseLayer,
     DomainAdversial,
     ConditionalDomainAdversial,
-    ConditionalDomainDiscriminator,
-    FeatureHead,
 ]

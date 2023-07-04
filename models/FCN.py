@@ -208,8 +208,8 @@ class MultiScaleFCN(nn.Module):
         x = self.msconvblock3(x)
         
 
-        # x = self.averagepool(x)
-        # x = x.squeeze_(-1)
+        x = self.averagepool(x)
+        x = x.squeeze_(-1)
         return x   
 
 class GatedConv(nn.Module):
