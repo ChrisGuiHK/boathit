@@ -3,7 +3,7 @@ import os
 import torch
 from models import MultiScaleFCN, LinearClassifier
 from models import LitTSVanilla as LitTSClassifier
-from models import DomainAdversial, DomainDiscriminator
+from models import DomainAdversarial, DomainDiscriminator
 from visualize import visualize
 from utils import feature_extract, get_dataloader, get_train_dataloader, class_relabel
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -49,7 +49,7 @@ def main(args: argparse.Namespace):
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
-        dann = DomainAdversial(backbone, classifer, domainDiscriminator, n_class, args.trade_off, args.pretrain)
+        dann = DomainAdversarial(backbone, classifer, domainDiscriminator, n_class, args.trade_off, args.pretrain)
 
         ## training and validation
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
@@ -66,7 +66,7 @@ def main(args: argparse.Namespace):
         if args.best_ckpt is None:
             raise ValueError("Please specify the best checkpoint path")
         
-        dann = DomainAdversial.load_from_checkpoint(
+        dann = DomainAdversarial.load_from_checkpoint(
             checkpoint_path=f'lightning_logs/{args.log_name}/version_{args.version}/checkpoints/{args.best_ckpt}',
             hparams_file=f"lightning_logs/{args.log_name}/version_{args.version}/hparams.yaml",
             map_location=None,
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument("--L", default=32*50, type=int) # seq_len or window size
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
-    parser.add_argument("--trade_off", default=.5, type=float)
+    parser.add_argument("--trade_off", default=1., type=float)
     parser.add_argument("--seed", default=701, type=int)
     parser.add_argument("--log_name", default='dann', type=str)
     parser.add_argument("--removed_classes", default=[], choices=[0, 1, 2, 3, 4], nargs='*', type=int)

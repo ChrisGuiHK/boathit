@@ -8,9 +8,9 @@ import torch.nn as nn
 #         x = self.linear(x)
 #         return torch.log_softmax(x, dim=1)
     
-LinearClassifier = lambda n_f, n_class: nn.Sequential(
+LinearClassifier = lambda n_f, n_class, log=True: nn.Sequential(
     nn.Linear(n_f, n_class),
-    nn.LogSoftmax(dim=1)
+    nn.LogSoftmax(dim=1) if log else nn.Softmax(dim=1)
 )
 
 FFNClassifier = lambda n_f, n_class: nn.Sequential(

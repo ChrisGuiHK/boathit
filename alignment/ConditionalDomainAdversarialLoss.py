@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models import WarmStartGradientReverseLayer
 
-class ConditionalDomainAdversialLoss(nn.Module):
+class ConditionalDomainAdversarialLoss(nn.Module):
     def __init__(self, domain_discriminator: nn.Module, grl: nn.Module = None, reduction: str = 'mean'):
-        super(ConditionalDomainAdversialLoss, self).__init__()
+        super(ConditionalDomainAdversarialLoss, self).__init__()
         self.domain_discriminator = domain_discriminator
         self.grl = grl if grl is not None else WarmStartGradientReverseLayer(alpha=1.0, lo=0., hi=1., max_iters=1500, auto_step=True)
         self.reduction = reduction

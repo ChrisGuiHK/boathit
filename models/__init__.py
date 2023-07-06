@@ -3,8 +3,9 @@ from .base import LinearClassifier, FFNClassifier
 from .LitTS import LitTSVanilla
 from .DomainDiscriminator import DomainDiscriminator
 from .grl import WarmStartGradientReverseLayer
-from .DomainAdversial import DomainAdversial
-from .ConditionalDomainAdversial import ConditionalDomainAdversial
+from .DomainAdversarial import DomainAdversarial
+from .ConditionalDomainAdversarial import ConditionalDomainAdversarial
+from .ImportanceWeightAdversarial import ImportanceWeightAdversarial
 
 __all__ = [
     FCNNaive,
@@ -15,6 +16,7 @@ __all__ = [
     LitTSVanilla,
     DomainDiscriminator,
     WarmStartGradientReverseLayer,
-    DomainAdversial,
-    ConditionalDomainAdversial,
+    DomainAdversarial,
+    ConditionalDomainAdversarial,
+    ImportanceWeightAdversarial,
 ]

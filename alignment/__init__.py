@@ -1,7 +1,11 @@
-from .DomainAdversialLoss import DomainAdversialLoss
-from .ConditionalDomainAdversialLoss import ConditionalDomainAdversialLoss
+from .DomainAdversarialLoss import DomainAdversarialLoss
+from .ConditionalDomainAdversarialLoss import ConditionalDomainAdversarialLoss
+from .WeightAdversarialLoss import WeightAdversarialLoss
+from .WeightAdversarialLoss import get_partial_classes_weight
 
 __all__ = [
-    DomainAdversialLoss,
-    ConditionalDomainAdversialLoss,
+    DomainAdversarialLoss,
+    ConditionalDomainAdversarialLoss,
+    WeightAdversarialLoss,
+    get_partial_classes_weight,
 ]

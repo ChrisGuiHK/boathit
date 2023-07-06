@@ -3,19 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import torchmetrics
-from alignment import ConditionalDomainAdversialLoss
+from alignment import DomainAdversarialLoss
 from typing import Any
 
-class ConditionalDomainAdversial(pl.LightningModule):
-    def __init__(self, backbone, classifer, discriminator, n_class, trade_off, pretrained=False):
+class DomainAdversarial(pl.LightningModule):
+    def __init__(self, backbone, classifer, discriminator, n_class, trade_off, pretrain=False):
         super().__init__()
         self.backbone = backbone
         self.classifer = classifer
         self.discriminator = discriminator
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
         self.trade_off = trade_off
-        self.loss = ConditionalDomainAdversialLoss(self.discriminator)
-        self.pretrained = pretrained
+        self.pretrain = pretrain
+        self.loss = DomainAdversarialLoss(self.discriminator)
 
     def training_step(self, batch, batch_idx):
         src_x, src_y = batch['src']
@@ -26,10 +26,11 @@ class ConditionalDomainAdversial(pl.LightningModule):
         f = self.backbone(x)
         y = self.classifer(f)
         y_s, y_t = torch.chunk(y, 2, dim=0)
+        f_s, f_t = torch.chunk(f, 2, dim=0)
 
         # loss
         loss_cls = F.nll_loss(y_s, src_y)
-        loss_adv = self.loss(f, y)
+        loss_adv = self.loss(f_s, f_t)
         loss = loss_cls + self.trade_off * loss_adv
 
         # log   
@@ -58,13 +59,12 @@ class ConditionalDomainAdversial(pl.LightningModule):
 
 
     def configure_optimizers(self) -> Any:
-        if not self.pretrained:
-            optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
-        else:
+        if self.pretrain:
             optimizer = torch.optim.Adam([
-                { 'params': self.backbone.parameters(), 'lr': 1e-5}, 
-                { 'params': self.classifer.parameters(), 'lr': 1e-4},
-                { 'params': self.feature_head.parameters(), 'lr': 1e-4},
-                { 'params': self.feature_head.parameters(), 'lr': 1e-4}
+                {'params': self.backbone.parameters(), 'lr': 1e-5}, 
+                {'params': self.classifer.parameters(), 'lr': 1e-4},
+                {'params': self.discriminator.parameters(), 'lr': 1e-4},
             ])
+        else:
+            optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
