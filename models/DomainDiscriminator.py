@@ -1,24 +1,32 @@
 import torch 
 import torch.nn as nn
+import torch.nn.functional as F
+from typing import List
 
 class DomainDiscriminator(nn.Module):
-    def __init__(self, in_feature: int, hidden_size: int, output_dim: int=2, sigmoid: bool = False):
+    def __init__(self, in_feature: int, hidden_size: int | List[int], output_dim: int=2, sigmoid: bool = True):
         super(DomainDiscriminator, self).__init__()
         if sigmoid:
             sigmoid_layer = nn.Sigmoid()
         else:
             sigmoid_layer = nn.Identity()
         
-        self.layers = nn.Sequential(
-            nn.Linear(in_feature, hidden_size),
-            nn.BatchNorm1d(hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.BatchNorm1d(hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, output_dim),
-            sigmoid_layer,
-        )
+        if isinstance(hidden_size, int): hidden_size = [hidden_size]
+        kernel_sizes = [in_feature, *hidden_size, output_dim]
+
+        self.layers = nn.Sequential()
+        for i in range(len(kernel_sizes)-2):
+            self.layers.add_module(
+                f'layer_{i}',
+                nn.Sequential(
+                    nn.Linear(kernel_sizes[i], kernel_sizes[i+1]),
+                    nn.BatchNorm1d(kernel_sizes[i+1]),
+                    nn.ReLU(),
+                )
+            )
+        self.layers.add_module(f'layer_{len(kernel_sizes)-2}', nn.Linear(kernel_sizes[-2], kernel_sizes[-1]))
+        self.layers.add_module(f'layer_{len(kernel_sizes)-1}', sigmoid_layer)
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.layers(x)
