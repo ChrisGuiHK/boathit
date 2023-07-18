@@ -52,7 +52,7 @@ def main(args: argparse.Namespace):
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
-        iwan = ImportanceWeightAdversarial(backbone, classifier, domain_adv_D, domain_adv_D0, n_class, args.trade_off, args.gamma, list(filter(lambda x: x not in [2, 3, 4], range(args.n_class))), pretrain=args.pretrained)
+        iwan = ImportanceWeightAdversarial(backbone, classifier, domain_adv_D, domain_adv_D0, n_class, args.trade_off, args.gamma, list(filter(lambda x: x not in [2, 3, 4], range(args.n_class))), pretrained=args.pretrained)
 
         # logger
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
