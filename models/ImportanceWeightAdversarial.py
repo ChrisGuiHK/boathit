@@ -34,13 +34,14 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         src_f = self.backbone(src_x)
         trg_f = self.backbone(trg_x)
         src_g = self.classifier(src_f)
+        trg_g = self.classifier(trg_f)
 
         # loss
         loss_cls = F.nll_loss(src_g, src_y)
         loss_adv_D = self.domain_adv_D_loss(src_f.detach(), trg_f.detach())
         w_s = get_importance_weight(self.domain_adv_D, src_f)
         loss_adv_D0 = self.domain_adv_D0_loss(src_f, trg_f, w_s=w_s)
-        loss_entropy = entropy(torch.exp(src_g), reduction='mean')  
+        loss_entropy = entropy(torch.exp(trg_g), reduction='mean') + binary_entropy(self.domain_adv_D(torch.cat([src_f, trg_f], dim=0)))
         loss = loss_cls + 1.5 * self.trade_off * loss_adv_D + self.trade_off * loss_adv_D0 + self.gamma * loss_entropy
         partial_class_weight, non_partial_classes_weight = \
             get_partial_classes_weight(w_s, src_y, self.partial_classes_index)
@@ -76,16 +77,21 @@ class ImportanceWeightAdversarial(pl.LightningModule):
     def configure_optimizers(self) -> Any:
         if self.pretrained:
             optimizer = torch.optim.Adam([
-                {'params': self.domain_adv_D.parameters(), 'lr':1e-4},
-                {'params': self.domain_adv_D0.parameters(), 'lr':1e-4},
-                {'params': self.classifier.parameters(), 'lr':1e-5},
-                {'params': self.backbone.parameters(), 'lr':1e-5},
-            ])
-        else:
-            optimizer = torch.optim.Adam([
-                {'params': self.domain_adv_D.parameters(), 'lr':1e-4},
-                {'params': self.domain_adv_D0.parameters(), 'lr':1e-4},
+                {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
+                {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
                 {'params': self.classifier.parameters(), 'lr':1e-4},
                 {'params': self.backbone.parameters(), 'lr':1e-4},
             ])
+        else:
+            optimizer = torch.optim.Adam([
+                {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
+                {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
+                {'params': self.classifier.parameters(), 'lr':1e-3},
+                {'params': self.backbone.parameters(), 'lr':1e-3},
+            ])
         return optimizer
+    
+def binary_entropy(prediction: torch.Tensor):
+    epsilon = 1e-5
+    H = -(prediction * torch.log(prediction + epsilon) + (1 - prediction) * torch.log(1 - prediction + epsilon))
+    return H.mean()

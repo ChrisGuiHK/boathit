@@ -102,9 +102,8 @@ if __name__ == "__main__":
     parser.add_argument("--L", default=32*50, type=int) # seq_len or window size
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
-    parser.add_argument("--trade_off", default=.5, type=float)
-    parser.add_argument("--lamda", default=1., type=float)
-    parser.add_argument("--gamma", default=.005, type=float)
+    parser.add_argument("--trade_off", default=3., type=float)
+    parser.add_argument("--gamma", default=0.1, type=float)
     parser.add_argument("--seed", default=701, type=int)
     parser.add_argument("--log_name", default='iwan', type=str)
     parser.add_argument("--removed_classes", default=[], choices=[0, 1, 2, 3, 4], nargs='*', type=int)
