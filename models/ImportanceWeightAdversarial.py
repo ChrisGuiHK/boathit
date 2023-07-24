@@ -17,6 +17,7 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         self.domain_adv_D = domain_adv_D
         self.domain_adv_D0 = domain_adv_D0
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
+        self.discriminator_accu = torchmetrics.Accuracy(task="binary")
         self.trade_off = trade_off
         self.gamma = gamma
         self.domain_adv_D_loss = DomainAdversarialLoss(self.domain_adv_D, sigmoid=True)
@@ -39,19 +40,24 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         # loss
         loss_cls = F.nll_loss(src_g, src_y)
         loss_adv_D = self.domain_adv_D_loss(src_f.detach(), trg_f.detach())
-        w_s = get_importance_weight(self.domain_adv_D, src_f)
+        with torch.no_grad():
+            w_s = get_importance_weight(self.domain_adv_D, src_f)
         loss_adv_D0 = self.domain_adv_D0_loss(src_f, trg_f, w_s=w_s)
-        loss_entropy = entropy(torch.exp(trg_g), reduction='mean') + binary_entropy(self.domain_adv_D(torch.cat([src_f, trg_f], dim=0)))
+        loss_entropy = entropy(torch.exp(trg_g), reduction='mean')
         loss = loss_cls + 1.5 * self.trade_off * loss_adv_D + self.trade_off * loss_adv_D0 + self.gamma * loss_entropy
         partial_class_weight, non_partial_classes_weight = \
             get_partial_classes_weight(w_s, src_y, self.partial_classes_index)
         
+        f = torch.cat([src_f, trg_f], dim=0)
+        discriminator_predict = self.domain_adv_D(f).squeeze()
+        labels = torch.cat([torch.ones(src_g.shape[0], dtype=torch.long), torch.zeros(trg_g.shape[0], dtype=torch.long)], dim=0).to(discriminator_predict.device)
+        
         # log  
         self.log('partial_class_weight', partial_class_weight, prog_bar=True)
         self.log('non_partial_classes_weight', non_partial_classes_weight, prog_bar=True)
+        self.log('discriminator_accu', self.discriminator_accu(discriminator_predict, labels), prog_bar=True)
 
         self.log('train_loss_cls', loss_cls, prog_bar=True)
-        self.log('train_loss_adv_D', loss_adv_D, prog_bar=True)
         self.log('train_loss_adv_D0', loss_adv_D0, prog_bar=True)
         self.log('train_loss_entropy', loss_entropy, prog_bar=True)
         return loss
@@ -76,11 +82,11 @@ class ImportanceWeightAdversarial(pl.LightningModule):
     
     def configure_optimizers(self) -> Any:
         if self.pretrained:
-            optimizer = torch.optim.Adam([
+            optimizer = torch.optim.RMSprop([
                 {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
                 {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
-                {'params': self.classifier.parameters(), 'lr':1e-4},
-                {'params': self.backbone.parameters(), 'lr':1e-4},
+                {'params': self.classifier.parameters(), 'lr':1e-5},
+                {'params': self.backbone.parameters(), 'lr':1e-5},
             ])
         else:
             optimizer = torch.optim.Adam([
@@ -90,8 +96,4 @@ class ImportanceWeightAdversarial(pl.LightningModule):
                 {'params': self.backbone.parameters(), 'lr':1e-3},
             ])
         return optimizer
-    
-def binary_entropy(prediction: torch.Tensor):
-    epsilon = 1e-5
-    H = -(prediction * torch.log(prediction + epsilon) + (1 - prediction) * torch.log(1 - prediction + epsilon))
-    return H.mean()
+

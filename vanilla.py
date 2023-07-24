@@ -31,7 +31,7 @@ def main(args: argparse.Namespace):
     mG = LinearClassifier(args.hidden_size*2, n_class)
 
     if args.mode == "train":
-        train_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'trn.json'), args.L, args.test_stride, args.batch_size, shuffle=True,
+        train_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'trn.json'), 2*args.L, args.test_stride, args.batch_size, shuffle=True,
                                         label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])

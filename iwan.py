@@ -11,8 +11,6 @@ from models import LitTSVanilla as LitTSClassifier
 from models import ImportanceWeightAdversarial, DomainDiscriminator
 from visualize import visualize
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
 def main(args: argparse.Namespace):
     if args.seed is not None:
         pl.seed_everything(args.seed)
@@ -30,7 +28,7 @@ def main(args: argparse.Namespace):
     
     ## preparing model
     if args.pretrained:
-    
+        print("pretrained model is loaded")
         tsc = LitTSClassifier.load_from_checkpoint(
             checkpoint_path=f'lightning_logs/{args.pretrained_model}/version_{args.pretrained_version}/checkpoints/{args.pretrained_ckpt}',
             hparams_file=f"lightning_logs/{args.pretrained_model}/version_{args.pretrained_version}/hparams.yaml",
@@ -45,8 +43,8 @@ def main(args: argparse.Namespace):
         backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
         classifier = LinearClassifier(args.hidden_size*2, n_class)
 
-    domain_adv_D = DomainDiscriminator(args.hidden_size*2, [512], output_dim=1)
-    domain_adv_D0 = DomainDiscriminator(args.hidden_size*2, [512, 512])
+    domain_adv_D = DomainDiscriminator(args.hidden_size*2, [512], output_dim=1, batch_norm=False)
+    domain_adv_D0 = DomainDiscriminator(args.hidden_size*2, [1024, 1024], batch_norm=False)
     
     if args.mode == "train":
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
@@ -103,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--N", default=16, type=int) # num_channel
     parser.add_argument("--n_class", default=5, type=int)
     parser.add_argument("--trade_off", default=3., type=float)
-    parser.add_argument("--gamma", default=0.1, type=float)
+    parser.add_argument("--gamma", default=1., type=float)
     parser.add_argument("--seed", default=701, type=int)
     parser.add_argument("--log_name", default='iwan', type=str)
     parser.add_argument("--removed_classes", default=[], choices=[0, 1, 2, 3, 4], nargs='*', type=int)
@@ -112,9 +110,9 @@ if __name__ == "__main__":
     parser.add_argument("--best_ckpt", default=None, type=str)
     parser.add_argument("--fig_name", default="iwan", type=str)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--pretrained", default=True, action='store_true')
+    parser.add_argument("--pretrained", default=False, action='store_true')
     parser.add_argument("--pretrained_model", default="vanilla", type=str)
     parser.add_argument("--pretrained_ckpt", default="last.ckpt", type=str)
-    parser.add_argument("--pretrained_version", default=0, type=int)
+    parser.add_argument("--pretrained_version", default=1, type=int)
     args = parser.parse_args()
     main(args)
