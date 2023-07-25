@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from typing import List, Optional
 
 class DomainDiscriminator(nn.Module):
-    def __init__(self, in_feature: int, hidden_size: int | List[int], output_dim: int=2, sigmoid: bool = True, batch_norm: Optional[bool] = True):
+    def __init__(self, in_feature: int, hidden_size: int | List[int], output_dim: int=2, sigmoid: bool = False, batch_norm: Optional[bool] = True):
         super(DomainDiscriminator, self).__init__()
         if sigmoid:
             sigmoid_layer = nn.Sigmoid()

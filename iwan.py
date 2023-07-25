@@ -35,7 +35,9 @@ def main(args: argparse.Namespace):
             map_location=None,
             mF=MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11]),
             mG=LinearClassifier(args.hidden_size*2, n_class),
-            n_class=n_class
+            n_class=n_class,
+            feature_dim=args.hidden_size*2,
+            device=args.devices,
         )
         backbone = tsc.mF
         classifier = tsc.mG
@@ -43,7 +45,7 @@ def main(args: argparse.Namespace):
         backbone = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
         classifier = LinearClassifier(args.hidden_size*2, n_class)
 
-    domain_adv_D = DomainDiscriminator(args.hidden_size*2, [512, 512], output_dim=1)
+    domain_adv_D = DomainDiscriminator(args.hidden_size*2, [512, 512], output_dim=1, batch_norm=False, sigmoid=True)
     domain_adv_D0 = DomainDiscriminator(args.hidden_size*2, [1024, 1024], batch_norm=False)
     
     if args.mode == "train":
@@ -72,7 +74,7 @@ def main(args: argparse.Namespace):
             hparams_file=f"lightning_logs/{args.log_name}/version_{args.version}/hparams.yaml",
             map_location=None,
             backbone=backbone, 
-            classifer=classifier, 
+            classifier=classifier,
             domain_adv_D=domain_adv_D,
             domain_adv_D0=domain_adv_D0,
             n_class=n_class, 
@@ -112,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--pretrained", default=False, action='store_true')
     parser.add_argument("--pretrained_model", default="vanilla", type=str)
-    parser.add_argument("--pretrained_ckpt", default="last.ckpt", type=str)
+    parser.add_argument("--pretrained_ckpt", default="epoch=44-step=54900.ckpt", type=str)
     parser.add_argument("--pretrained_version", default=3, type=int)
     args = parser.parse_args()
     main(args)

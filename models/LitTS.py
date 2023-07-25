@@ -4,17 +4,22 @@ import pytorch_lightning as pl
 import torchmetrics
 from typing import Any
 from models.ImportanceWeightModule import entropy
+from models.CenterLoss import CenterLoss
+from torch.optim import lr_scheduler
 
 class LitTSVanilla(pl.LightningModule):
-    def __init__(self, mF, mG, n_class):
+    def __init__(self, mF, mG, n_class, feature_dim, device):
         super().__init__()
         self.mF = mF
         self.mG = mG
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
         self.n_class = n_class
+        self.centerLoss = CenterLoss(n_class, feature_dim, f'cuda:{device}')
 
     def training_step(self, batch, batch_idx):
-        tau = 0.5
+        # tau = 0.5
+
+        ## simclr loss
 
         # x, y = batch
         # x_l, x_r = torch.chunk(x, 2, dim=2) # [batch_size, Channel, Length // 2]
@@ -51,33 +56,51 @@ class LitTSVanilla(pl.LightningModule):
 
         ######################################################
 
+        ## constractive loss
+
+        # x, y = batch
+        # N = x.shape[0]
+        # f = self.mF(x)
+        # g = self.mG(f)
+        # cls_loss = F.nll_loss(g, y)
+
+        # numerator = torch.zeros((N, 1), device=self.device)
+        # norm = f / torch.linalg.norm(f, dim=1, keepdim=True)
+        # sim_matrix = torch.mm(norm, norm.T)
+        # exp = torch.exp(sim_matrix / tau)
+        # # This binary mask zeros out terms where k=i.
+        # mask = (torch.ones_like(exp, device=self.device) - torch.eye(N, device=self.device)).bool()
+        # # We apply the binary mask.
+        # exponential = exp.masked_select(mask).view(N, -1)  # [N, N-1]
+        # denom = torch.sum(exponential, dim=1, keepdim=True) # [N, 1]
+
+        # one_hot = F.one_hot(y, num_classes=self.n_class).float()
+        # class_num = torch.sum(one_hot, dim=0)
+        # class_num = torch.gather(class_num, dim=0, index=y)
+        # numerator = torch.mm(exp, one_hot)
+        # numerator = (torch.gather(numerator, dim=1, index=y.unsqueeze(1)) - torch.diagonal(exp)) / (class_num.unsqueeze(1) - 1)
+        # simclr_loss = torch.mean(-torch.log(numerator / denom))
+
+        # self.log('accuracy', self.accuracy(g, y), prog_bar=True)
+        # self.log('simclr_loss', simclr_loss, prog_bar=True)
+        # self.log('cls_loss', cls_loss, prog_bar=True)
+        # loss = simclr_loss + cls_loss
+
+        #########################################################
+
+        ## center loss
+
         x, y = batch
         N = x.shape[0]
         f = self.mF(x)
         g = self.mG(f)
         cls_loss = F.nll_loss(g, y)
-
-        numerator = torch.zeros((N, 1), device=self.device)
-        norm = f / torch.linalg.norm(f, dim=1, keepdim=True)
-        sim_matrix = torch.mm(norm, norm.T)
-        exp = torch.exp(sim_matrix / tau)
-        # This binary mask zeros out terms where k=i.
-        mask = (torch.ones_like(exp, device=self.device) - torch.eye(N, device=self.device)).bool()
-        # We apply the binary mask.
-        exponential = exp.masked_select(mask).view(N, -1)  # [N, N-1]
-        denom = torch.sum(exponential, dim=1, keepdim=True) # [N, 1]
-
-        one_hot = F.one_hot(y, num_classes=self.n_class).float()
-        class_num = torch.sum(one_hot, dim=0)
-        class_num = torch.gather(class_num, dim=0, index=y)
-        numerator = torch.mm(exp, one_hot)
-        numerator = (torch.gather(numerator, dim=1, index=y.unsqueeze(1)) - torch.diagonal(exp)) / (class_num.unsqueeze(1) - 1)
-        simclr_loss = torch.mean(-torch.log(numerator / denom))
+        center_loss = self.centerLoss(f, y)
+        loss = cls_loss + center_loss
 
         self.log('accuracy', self.accuracy(g, y), prog_bar=True)
-        self.log('simclr_loss', simclr_loss, prog_bar=True)
         self.log('cls_loss', cls_loss, prog_bar=True)
-        loss = simclr_loss + cls_loss
+        self.log('center_loss', center_loss, prog_bar=True)
 
         return loss
     
@@ -101,5 +124,5 @@ class LitTSVanilla(pl.LightningModule):
 
 
     def configure_optimizers(self) -> Any:
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4)
         return optimizer

@@ -36,10 +36,10 @@ def main(args: argparse.Namespace):
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
-        tsc = LitTSClassifier(mF, mG, n_class)
+        tsc = LitTSClassifier(mF, mG, n_class, args.hidden_size*2, args.devices)
         ## training and validation
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
-        checkpoint_callback = ModelCheckpoint(monitor='val_accuracy', mode='max', save_top_k=1, save_last=True)
+        checkpoint_callback = ModelCheckpoint(monitor='val_accuracy', mode='max', save_top_k=-1, save_last=True, every_n_epochs=5)
         trainer = pl.Trainer(accelerator=args.accelerator, devices=[args.devices], max_epochs=args.max_epochs, gradient_clip_val=1.0, logger=logger, callbacks=[checkpoint_callback])
         trainer.fit(tsc, train_dataloader, valid_dataloader)
 
@@ -53,7 +53,9 @@ def main(args: argparse.Namespace):
             map_location=None,
             mF=mF,
             mG=mG,
-            n_class=n_class
+            n_class=n_class,
+            feature_dim=args.hidden_size*2,
+            device=args.devices,
         )
         src_features, src_labels = feature_extract(tsc.mF, test_src_dataloader, args.devices)
         trg_features, trg_labels = feature_extract(tsc.mF, test_trg_dataloader, args.devices)

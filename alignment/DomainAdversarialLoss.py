@@ -11,7 +11,7 @@ class DomainAdversarialLoss(nn.Module):
         self.reduction = reduction
         self.sigmoid = sigmoid
         if grl is None:
-            self.grl = WarmStartGradientReverseLayer(alpha=1., lo=0., hi=1., max_iters=1500, auto_step=True)
+            self.grl = WarmStartGradientReverseLayer(alpha=1., lo=0., hi=1., max_iters=2000, auto_step=True)
         else:
             self.grl = grl
 

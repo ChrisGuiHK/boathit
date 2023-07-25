@@ -7,6 +7,7 @@ import torchmetrics
 from typing import List, Optional
 from alignment import DomainAdversarialLoss
 from models.ImportanceWeightModule import get_partial_classes_weight, get_importance_weight, entropy
+from models.CenterLoss import CenterLoss
 
 
 class ImportanceWeightAdversarial(pl.LightningModule):
@@ -24,6 +25,9 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         self.domain_adv_D0_loss = DomainAdversarialLoss(self.domain_adv_D0)
         self.partial_classes_index = partial_classes_index
         self.pretrained = pretrained
+        self.center_loss = CenterLoss(n_class, 2*backbone.hidden_size, device=f'cuda:1')
+        # self.max_steps = 2000
+        # self.steps = 0
     
     def training_step(self, batch, batch_idx):
         # get optimizer
@@ -37,14 +41,25 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         src_g = self.classifier(src_f)
         trg_g = self.classifier(trg_f)
 
+        # loss_cls = torch.Tensor([0]).to(src_x.device)
+        # loss_adv_D0 = torch.Tensor([0]).to(src_x.device)
+        # loss_entropy = torch.Tensor([0]).to(src_x.device)
+
         # loss
-        loss_cls = F.nll_loss(src_g, src_y)
+        # if self.steps >= self.max_steps:
+        loss_cls = F.nll_loss(src_g, src_y) + self.center_loss(src_f, src_y)
         loss_adv_D = self.domain_adv_D_loss(src_f.detach(), trg_f.detach())
         with torch.no_grad():
             w_s = get_importance_weight(self.domain_adv_D, src_f)
         loss_adv_D0 = self.domain_adv_D0_loss(src_f, trg_f, w_s=w_s)
         loss_entropy = entropy(torch.exp(trg_g), reduction='mean')
-        loss = loss_cls + 1.5 * self.trade_off * loss_adv_D + self.trade_off * loss_adv_D0 + self.gamma * loss_entropy
+        loss = loss_cls + self.trade_off * loss_adv_D + self.trade_off * loss_adv_D0 + self.gamma * loss_entropy
+        # else:
+        #     loss_adv_D = self.domain_adv_D_loss(src_f.detach(), trg_f.detach())
+        #     with torch.no_grad():
+        #         w_s = get_importance_weight(self.domain_adv_D, src_f)
+        #     loss = loss_adv_D
+            
         partial_class_weight, non_partial_classes_weight = \
             get_partial_classes_weight(w_s, src_y, self.partial_classes_index)
         
@@ -60,6 +75,9 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         self.log('train_loss_cls', loss_cls, prog_bar=True)
         self.log('train_loss_adv_D0', loss_adv_D0, prog_bar=True)
         self.log('train_loss_entropy', loss_entropy, prog_bar=True)
+
+        # self.steps += 1
+
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -82,18 +100,18 @@ class ImportanceWeightAdversarial(pl.LightningModule):
     
     def configure_optimizers(self) -> Any:
         if self.pretrained:
-            optimizer = torch.optim.Adam([
+            optimizer = torch.optim.SGD([
                 {'params': self.domain_adv_D.parameters(), 'lr':1e-4},
                 {'params': self.domain_adv_D0.parameters(), 'lr':1e-4},
                 {'params': self.classifier.parameters(), 'lr':1e-5},
                 {'params': self.backbone.parameters(), 'lr':1e-5},
-            ])
+            ], nesterov=True, momentum=0.9, weight_decay=1e-4)
         else:
             optimizer = torch.optim.Adam([
                 {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
                 {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
                 {'params': self.classifier.parameters(), 'lr':1e-3},
                 {'params': self.backbone.parameters(), 'lr':1e-3},
-            ])
+            ], nesterov=True, weight_decay=1e-4, momentum=0.9)
         return optimizer
 
