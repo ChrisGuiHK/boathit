@@ -12,7 +12,7 @@ def get_importance_weight(discriminator, feature):
     Returns:
         instance weight in shape :math:`(N, )`
     """
-    weight = 1. - discriminator(feature)
+    weight = 1. - discriminator(feature.detach())
     weight = weight / weight.mean()
     weight = weight.squeeze().detach()
     return weight

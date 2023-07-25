@@ -82,9 +82,9 @@ class ImportanceWeightAdversarial(pl.LightningModule):
     
     def configure_optimizers(self) -> Any:
         if self.pretrained:
-            optimizer = torch.optim.RMSprop([
-                {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
-                {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
+            optimizer = torch.optim.Adam([
+                {'params': self.domain_adv_D.parameters(), 'lr':1e-4},
+                {'params': self.domain_adv_D0.parameters(), 'lr':1e-4},
                 {'params': self.classifier.parameters(), 'lr':1e-5},
                 {'params': self.backbone.parameters(), 'lr':1e-5},
             ])

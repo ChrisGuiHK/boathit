@@ -96,7 +96,7 @@ class MultiScaleConvBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         xs = [m(x) for m in self.ms]
         x = torch.cat(xs, dim=-2)
-        x = self.bn(x)
+        # x = self.bn(x)
         x = F.gelu(x)
         x = self.pooling(x)
         x = self.dropout(x)
