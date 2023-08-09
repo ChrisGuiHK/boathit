@@ -8,6 +8,7 @@ from .ConditionalDomainAdversarial import ConditionalDomainAdversarial
 from .ImportanceWeightAdversarial import ImportanceWeightAdversarial
 from .ImportanceWeightModule import get_importance_weight, get_partial_classes_weight, entropy
 from .CenterLoss import CenterLoss
+from .Inception import InceptionTime
 
 __all__ = [
     FCNNaive,
@@ -25,4 +26,5 @@ __all__ = [
     get_partial_classes_weight,
     entropy,
     CenterLoss,
+    InceptionTime, 
 ]

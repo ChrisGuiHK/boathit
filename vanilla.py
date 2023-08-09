@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import os
 import argparse
 from pytorch_lightning.callbacks import ModelCheckpoint
-from models import MultiScaleFCN, LinearClassifier
+from models import MultiScaleFCN, LinearClassifier, InceptionTime
 from models import LitTSVanilla as LitTSClassifier
 from utils import class_relabel, get_dataloader, feature_extract
 from argparse import ArgumentParser
@@ -27,8 +27,9 @@ def main(args: argparse.Namespace):
                                         label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
 
     ## fcn
-    mF = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
-    mG = LinearClassifier(args.hidden_size*2, n_class)
+    # mF = MultiScaleFCN((args.N, args.L), hidden_size=args.hidden_size, kernel_sizes=[1, 3, 5, 7, 11])
+    mF = InceptionTime([args.N]+ 3*[args.hidden_size], bottleneck_dim=[16, 160, 160,], kernel_sizes=[3, 5, 7, 11])
+    mG = LinearClassifier(args.hidden_size, n_class)
 
     if args.mode == "train":
         train_dataloader = get_dataloader(os.path.join(args.data_src_dir, 'trn.json'), args.L, args.test_stride, args.batch_size, shuffle=True,
@@ -36,7 +37,7 @@ def main(args: argparse.Namespace):
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
         
-        tsc = LitTSClassifier(mF, mG, n_class, args.hidden_size*2, args.devices)
+        tsc = LitTSClassifier(mF, mG, n_class)
         ## training and validation
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
         checkpoint_callback = ModelCheckpoint(monitor='val_accuracy', mode='max', save_top_k=-1, save_last=True, every_n_epochs=5)
@@ -54,8 +55,6 @@ def main(args: argparse.Namespace):
             mF=mF,
             mG=mG,
             n_class=n_class,
-            feature_dim=args.hidden_size*2,
-            device=args.devices,
         )
         src_features, src_labels = feature_extract(tsc.mF, test_src_dataloader, args.devices)
         trg_features, trg_labels = feature_extract(tsc.mF, test_trg_dataloader, args.devices)

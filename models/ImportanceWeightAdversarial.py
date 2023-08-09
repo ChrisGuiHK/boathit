@@ -11,7 +11,8 @@ from models.CenterLoss import CenterLoss
 
 
 class ImportanceWeightAdversarial(pl.LightningModule):
-    def __init__(self, backbone, classifier, domain_adv_D, domain_adv_D0, n_class, trade_off, gamma, partial_classes_index: Optional[List[int]]=None, pretrained: Optional[bool]=False):
+    def __init__(self, backbone, classifier, domain_adv_D, domain_adv_D0, n_class, trade_off, gamma, partial_classes_index: Optional[List[int]]=None, 
+                 pretrained: Optional[bool]=False, feature_dim: Optional[int]=None):
         super(ImportanceWeightAdversarial, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
@@ -25,7 +26,7 @@ class ImportanceWeightAdversarial(pl.LightningModule):
         self.domain_adv_D0_loss = DomainAdversarialLoss(self.domain_adv_D0)
         self.partial_classes_index = partial_classes_index
         self.pretrained = pretrained
-        self.center_loss = CenterLoss(n_class, 2*backbone.hidden_size, device=f'cuda:1')
+        self.feature_dim = feature_dim
         # self.max_steps = 2000
         # self.steps = 0
     
@@ -47,7 +48,7 @@ class ImportanceWeightAdversarial(pl.LightningModule):
 
         # loss
         # if self.steps >= self.max_steps:
-        loss_cls = F.nll_loss(src_g, src_y) + self.center_loss(src_f, src_y)
+        loss_cls = F.nll_loss(src_g, src_y) 
         loss_adv_D = self.domain_adv_D_loss(src_f.detach(), trg_f.detach())
         with torch.no_grad():
             w_s = get_importance_weight(self.domain_adv_D, src_f)
@@ -100,18 +101,18 @@ class ImportanceWeightAdversarial(pl.LightningModule):
     
     def configure_optimizers(self) -> Any:
         if self.pretrained:
-            optimizer = torch.optim.SGD([
+            optimizer = torch.optim.Adam([
                 {'params': self.domain_adv_D.parameters(), 'lr':1e-4},
                 {'params': self.domain_adv_D0.parameters(), 'lr':1e-4},
                 {'params': self.classifier.parameters(), 'lr':1e-5},
                 {'params': self.backbone.parameters(), 'lr':1e-5},
-            ], nesterov=True, momentum=0.9, weight_decay=1e-4)
+            ])
         else:
             optimizer = torch.optim.Adam([
                 {'params': self.domain_adv_D.parameters(), 'lr':1e-3},
                 {'params': self.domain_adv_D0.parameters(), 'lr':1e-3},
                 {'params': self.classifier.parameters(), 'lr':1e-3},
                 {'params': self.backbone.parameters(), 'lr':1e-3},
-            ], nesterov=True, weight_decay=1e-4, momentum=0.9)
+            ])
         return optimizer
 

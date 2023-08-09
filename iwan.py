@@ -52,7 +52,8 @@ def main(args: argparse.Namespace):
         train_src_dataloader, train_trg_dataloader = get_train_dataloader(args.data_src_dir, args.data_trg_dir, args.L, args.train_stride, args.batch_size, label_mapping, args.num_workers, args.removed_classes)
         valid_dataloader = get_dataloader(os.path.join(args.data_trg_dir, 'val.json'), args.L, args.test_stride, 2*args.batch_size, shuffle=False, 
                                     label_mapping=label_mapping, num_workers=args.num_workers, removed_classes=[*args.removed_classes, 3])
-        iwan = ImportanceWeightAdversarial(backbone, classifier, domain_adv_D, domain_adv_D0, n_class, args.trade_off, args.gamma, list(filter(lambda x: x not in [2, 3, 4], range(args.n_class))), pretrained=args.pretrained)
+        iwan = ImportanceWeightAdversarial(backbone, classifier, domain_adv_D, domain_adv_D0, n_class, args.trade_off, args.gamma, list(filter(lambda x: x not in [2, 3, 4], range(args.n_class))), 
+                                           pretrained=args.pretrained, feature_dim=args.hidden_size*2)
 
         # logger
         logger = TensorBoardLogger('lightning_logs/', name=args.log_name)
@@ -80,7 +81,8 @@ def main(args: argparse.Namespace):
             n_class=n_class, 
             trade_off=args.trade_off,
             gamma=args.gamma,
-            partial_classes_index=list(filter(lambda x: x not in [2, 3, 4], range(args.n_class)))
+            partial_classes_index=list(filter(lambda x: x not in [2, 3, 4], range(args.n_class))),
+            feature_dim=args.hidden_size*2,
         )
         src_features, src_labels = feature_extract(iwan.backbone, test_src_dataloader, args.devices)
         trg_features, trg_labels = feature_extract(iwan.backbone, test_trg_dataloader, args.devices)
@@ -114,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--pretrained", default=False, action='store_true')
     parser.add_argument("--pretrained_model", default="vanilla", type=str)
-    parser.add_argument("--pretrained_ckpt", default="epoch=44-step=54900.ckpt", type=str)
-    parser.add_argument("--pretrained_version", default=3, type=int)
+    parser.add_argument("--pretrained_ckpt", default="last.ckpt", type=str)
+    parser.add_argument("--pretrained_version", default=1, type=int)
     args = parser.parse_args()
     main(args)

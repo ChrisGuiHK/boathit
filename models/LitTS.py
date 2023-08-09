@@ -8,16 +8,16 @@ from models.CenterLoss import CenterLoss
 from torch.optim import lr_scheduler
 
 class LitTSVanilla(pl.LightningModule):
-    def __init__(self, mF, mG, n_class, feature_dim, device):
+    def __init__(self, mF, mG, n_class):
         super().__init__()
         self.mF = mF
         self.mG = mG
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=n_class)
         self.n_class = n_class
-        self.centerLoss = CenterLoss(n_class, feature_dim, f'cuda:{device}')
+        #self.centerLoss = CenterLoss(n_class, feature_dim, f'cuda:{device}')
 
     def training_step(self, batch, batch_idx):
-        # tau = 0.5
+        tau = 0.5
 
         ## simclr loss
 
@@ -90,18 +90,30 @@ class LitTSVanilla(pl.LightningModule):
 
         ## center loss
 
+        # x, y = batch
+        # N = x.shape[0]
+        # f = self.mF(x)
+        # g = self.mG(f)
+        # cls_loss = F.nll_loss(g, y)
+        # #center_loss = self.centerLoss(f, y)
+        # loss = cls_loss #+ center_loss
+
+        # self.log('accuracy', self.accuracy(g, y), prog_bar=True)
+        # self.log('cls_loss', cls_loss, prog_bar=True)
+        # #self.log('center_loss', center_loss, prog_bar=True)
+
+        #########################################################
+
+        ## vanilla loss
+
         x, y = batch
-        N = x.shape[0]
         f = self.mF(x)
         g = self.mG(f)
-        cls_loss = F.nll_loss(g, y)
-        center_loss = self.centerLoss(f, y)
-        loss = cls_loss + center_loss
+        loss = F.nll_loss(g, y)
 
         self.log('accuracy', self.accuracy(g, y), prog_bar=True)
-        self.log('cls_loss', cls_loss, prog_bar=True)
-        self.log('center_loss', center_loss, prog_bar=True)
-
+        self.log('cls_loss', loss, prog_bar=True)
+        
         return loss
     
     def validation_step(self, batch, batch_idx):
